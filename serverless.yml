@@ -1,0 +1,45 @@
+service: prisma-typesql
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-offline
+  - serverless-webpack
+  # - serverless-prune-plugin
+
+provider:
+  name: aws
+  region: sa-east-1
+  runtime: nodejs12.x
+  lambdaHashingVersion: "20201221"
+  deploymentBucket:
+    name: deployment-bucket-sa-east-1
+
+functions:
+  graphql:
+    handler: src/handlers.graphqlHandler
+    events:
+      - http:
+          method: ANY
+          path: /graphql
+
+# only include the Prisma binary required on AWS Lambda while packaging
+package:
+  patterns:
+    - '!node_modules/.prisma/client/libquery_engine-*'
+    - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+    - '!node_modules/prisma/libquery_engine-*'
+    - '!node_modules/@prisma/engines/**'
+  include:
+    - dist/**
+    - node_modules/**
+
+custom:
+  prune:
+    automatic: true
+    number: 5
+  serverless-offline:
+    port: 1337
+  webpack:
+    webpackConfig: 'webpack.config.js' # Name of webpack configuration file
+    includeModules: true # Node modules configuration for packaging
+    packager: 'yarn' # Reserved for future use. Any other values will not work right now.
+    packExternalModulesMaxBuffer: 204800 # Size of stdio buffers for spawned child processes
